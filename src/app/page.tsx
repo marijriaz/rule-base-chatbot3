@@ -1,69 +1,219 @@
-import Image from "next/image";
+
+"use client";
+
+import { FormEvent, KeyboardEvent, useState } from "react";
+import rules from "./rules.json";
+
+type Message = {
+  role: "bot" | "user";
+  text: string;
+};
+
+const quickTopics = [
+  { label: "Menu", message: "menu" },
+  { label: "Deals", message: "deals" },
+  { label: "Timings", message: "timings" },
+  { label: "Location", message: "location" },
+  { label: "Delivery", message: "delivery" },
+  { label: "Payment", message: "payment" },
+];
+
+const fallbackReply =
+  "Sorry, I didn't quite understand that. 😊 You can ask me about our menu, deals, timings, location, delivery, payment, or how to order.";
+
+function findReply(userMessage: string): string {
+  const message = userMessage.toLowerCase().trim();
+
+  // Check specific topics first. The greeting rule is last in rules.json.
+  for (const rule of rules) {
+    const matched = rule.keywords.some((keyword) => {
+      const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const wholeWordPattern = new RegExp(`\\b${escapedKeyword}\\b`, "i");
+      return wholeWordPattern.test(message);
+    });
+
+    if (matched) {
+      return rule.reply;
+    }
+  }
+
+  return fallbackReply;
+}
 
 export default function Home() {
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      role: "bot",
+      text: "Assalam-o-Alaikum! 👋 Welcome to Desi Bites — your demo restaurant chatbot in Sargodha.\n\nI can help you explore our menu, deals, opening hours, location, delivery, and payment options.\n\nHow can I help you today?",
+    },
+  ]);
+
+  const [input, setInput] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
+
+  function sendMessage(messageText: string) {
+    const text = messageText.trim();
+
+    if (!text || isTyping) {
+      return;
+    }
+
+    setMessages((previous) => [
+      ...previous,
+      { role: "user", text },
+    ]);
+    setInput("");
+    setIsTyping(true);
+
+    const reply = findReply(text);
+
+    window.setTimeout(() => {
+      setMessages((previous) => [
+        ...previous,
+        { role: "bot", text: reply },
+      ]);
+      setIsTyping(false);
+    }, 500);
+  }
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    sendMessage(input);
+  }
+
+  function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      sendMessage(input);
+    }
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <main className="min-h-screen bg-orange-50 px-3 py-5 text-stone-800 sm:px-6 sm:py-8">
+      <div className="mx-auto flex min-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl border border-orange-100 bg-white shadow-xl">
+        {/* Restaurant header */}
+        <header className="bg-orange-600 px-5 py-5 text-white sm:px-7">
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white text-2xl">
+              🍔
+            </div>
+
+            <div>
+              <h1 className="text-xl font-bold sm:text-2xl">
+                Desi Bites
+              </h1>
+              <p className="mt-1 text-sm text-orange-100">
+                Restaurant Chatbot · Sargodha
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4 flex items-center gap-2 text-sm text-orange-50">
+            <span className="h-2 w-2 rounded-full bg-green-300" />
+            Online · Ready to help
+          </div>
+        </header>
+
+        {/* Quick topic buttons */}
+        <section className="border-b border-orange-100 bg-orange-50/70 px-4 py-4 sm:px-6">
+          <p className="mb-3 text-xs font-bold uppercase tracking-wider text-stone-500">
+            Quick questions
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+
+          <div className="flex flex-wrap gap-2">
+            {quickTopics.map((topic) => (
+              <button
+                key={topic.label}
+                type="button"
+                disabled={isTyping}
+                onClick={() => sendMessage(topic.message)}
+                className="rounded-full border border-orange-200 bg-white px-4 py-2 text-sm font-medium text-orange-700 transition hover:border-orange-500 hover:bg-orange-100 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {topic.label}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* Chat messages */}
+        <section
+          aria-live="polite"
+          aria-label="Chat messages"
+          className="flex flex-1 flex-col gap-4 overflow-y-auto bg-white px-4 py-5 sm:px-6"
+        >
+          {messages.map((message, index) => (
+            <div
+              key={`${message.role}-${index}`}
+              className={`flex ${
+                message.role === "user"
+                  ? "justify-end"
+                  : "justify-start"
+              }`}
+            >
+              {message.role === "bot" && (
+                <div className="mr-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-orange-100 text-sm">
+                  🍔
+                </div>
+              )}
+
+              <div
+                className={`max-w-[88%] rounded-2xl px-4 py-3 text-sm leading-6 sm:max-w-[80%] ${
+                  message.role === "user"
+                    ? "rounded-br-sm bg-orange-600 text-white"
+                    : "rounded-bl-sm border border-orange-100 bg-orange-50 text-stone-800"
+                }`}
+              >
+                <p className="whitespace-pre-line break-words">
+                  {message.text}
+                </p>
+              </div>
+            </div>
+          ))}
+
+          {isTyping && (
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-100 text-sm">
+                🍔
+              </div>
+
+              <div className="rounded-2xl rounded-bl-sm border border-orange-100 bg-orange-50 px-4 py-3 text-sm text-stone-500">
+                <span className="animate-pulse">Typing...</span>
+              </div>
+            </div>
+          )}
+        </section>
+
+        {/* Message input */}
+        <footer className="border-t border-orange-100 bg-white p-4 sm:p-5">
+          <form
+            onSubmit={handleSubmit}
+            className="flex items-center gap-2"
           >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
+            <input
+              type="text"
+              value={input}
+              onChange={(event) => setInput(event.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Ask about our menu, deals..."
+              aria-label="Type your message"
+              disabled={isTyping}
+              className="min-w-0 flex-1 rounded-full border border-stone-200 bg-stone-50 px-4 py-3 text-sm outline-none transition placeholder:text-stone-400 focus:border-orange-500 focus:bg-white focus:ring-2 focus:ring-orange-100 disabled:opacity-60"
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+
+            <button
+              type="submit"
+              disabled={!input.trim() || isTyping}
+              className="rounded-full bg-orange-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Send
+            </button>
+          </form>
+
+          <p className="mt-3 text-center text-xs text-stone-400">
+            Desi Bites demo · Automated rule-based replies
+          </p>
+        </footer>
+      </div>
+    </main>
   );
 }
